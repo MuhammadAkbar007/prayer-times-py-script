@@ -1,0 +1,72 @@
+# ----------------------------
+# Python cache and build files
+# ----------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ----------------------------
+# Virtual environments
+# ----------------------------
+venv/
+.env/
+env/
+.venv/
+
+# ----------------------------
+# Django specific
+# ----------------------------
+*.log
+*.pot
+staticfiles/
+
+# Local settings (keep secrets out of repo)
+local_settings.py
+
+# ----------------------------
+# Environment variables & secrets
+# ----------------------------
+.env
+.env.*
+!.env.example  # Keep a template if needed
+
+# ----------------------------
+# Tool caches & reports
+# ----------------------------
+.ruff_cache/
+.pyright/
+.mypy_cache/
+.pytest_cache/
+coverage/
+htmlcov/
+
+# ----------------------------
+# IDE / Editor directories
+# ----------------------------
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ----------------------------
+# OS-generated junk files
+# ----------------------------
+.DS_Store
+Thumbs.db
+
+### NeoVim ###
+/queries
+/db_queries
+rest_nvim_result#Response
+server exited unexpectedly
+command list-panes: too many arguments (need at most 0)
+scratch/
