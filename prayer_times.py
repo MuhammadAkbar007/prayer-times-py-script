@@ -7,13 +7,15 @@ from pathlib import Path
 API_URL = "https://islomapi.uz/api/present/day?region=Namangan"
 CACHE_FILE = Path.home() / ".cache/prayer-next.txt"
 
+#   󱩸  󰖨      
+# 🕌 🌞 ☀️ 🌤 🌛 🌙
 PRAYER_ICONS = {
-    "tong_saharlik": "🕌 Fajr",
-    "quyosh": "🌞 Sunrise",
-    "peshin": "☀️Dhuhr",
-    "asr": "🌤 Asr",
-    "shom_iftor": "🌛 Maghrib",
-    "hufton": "🌙 Isha",
+    "tong_saharlik": "Fajr",
+    "quyosh": "Sunrise",
+    "peshin": "huhr",
+    "asr": "Asr",
+    "shom_iftor": "Maghrib",
+    "hufton": "Isha",
 }
 
 
@@ -31,7 +33,7 @@ def fetch_prayer_times():
         return data["times"]  # dict with today's prayer times
     except Exception as e:
         print(f"Error fetching prayer times: {e}")
-        safe_write("Loading...")
+        safe_write("Loading... 🌀")
         return None
 
 
