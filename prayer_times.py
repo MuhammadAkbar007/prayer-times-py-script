@@ -1,8 +1,10 @@
-import requests
 import datetime
+from pathlib import Path
+import requests
+from requests.adapters import HTTPAdapter
 import subprocess
 import time
-from pathlib import Path
+from urllib3.util.retry import Retry
 
 API_URL = "https://islomapi.uz/api/present/day?region=Namangan"
 CACHE_FILE = Path.home() / ".cache/prayer-next.txt"
@@ -18,6 +20,15 @@ PRAYER_ICONS = {
     "hufton": "Isha",
 }
 
+session = requests.Session()
+retries = Retry(
+    total=5,  # up to 5 retries
+    backoff_factor=2,  # wait 2s, 4s, 8s, ... between retries
+    status_forcelist=[500, 502, 503, 504],  # retry on these HTTP codes
+    allowed_methods=["GET"],  # only retry GET requests
+)
+session.mount("https://", HTTPAdapter(max_retries=retries))
+
 
 def safe_write(text: str):
     """Always write something to cache file so tmux never shows blank."""
@@ -27,13 +38,12 @@ def safe_write(text: str):
 
 def fetch_prayer_times():
     try:
-        response = requests.get(API_URL, timeout=10)
+        response = session.get(API_URL, timeout=30)
         response.raise_for_status()
         data = response.json()
         return data["times"]  # dict with today's prayer times
     except Exception as e:
         print(f"Error fetching prayer times: {e}")
-        safe_write("Loading... 🌀")
         return None
 
 
@@ -70,11 +80,10 @@ def main():
         print(f"Prayer times for {current_day}:")
         for name, t in prayer_times.items():
             print(f"{name}: {t}")
+        write_next_prayer(prayer_times)
     else:
         print("Prayer times unavailable at startup.")
-
-    # Initial write
-    write_next_prayer(prayer_times)
+        safe_write("Loading... 🌀")
 
     while True:
         now = datetime.datetime.now()
@@ -88,9 +97,10 @@ def main():
                 print(f"\nUpdated prayer times for {current_day}:")
                 for name, t in prayer_times.items():
                     print(f"{name}: {t}")
+                write_next_prayer(prayer_times)
             else:
                 print("Prayer times unavailable after midnight.")
-            write_next_prayer(prayer_times)
+                safe_write("Loading... 🌀")
 
         # Check prayers
         if prayer_times:
