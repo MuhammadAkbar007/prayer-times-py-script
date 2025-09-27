@@ -11,7 +11,7 @@ CACHE_FILE = Path.home() / ".cache/prayer-next.txt"
 
 #   󱩸  󰖨      
 # 🕌 🌞 ☀️ 🌤 🌛 🌙
-PRAYER_ICONS = {
+PRAYER_NAMES = {
     "tong_saharlik": "Fajr",
     "quyosh": "Sunrise",
     "peshin": "Dhuhr",
@@ -65,11 +65,11 @@ def get_next_prayer(prayer_times):
     for name, t in sorted(prayer_times.items(), key=lambda x: x[1]):
         if now < t:
             # return f"{name}: {t}"
-            return f"{PRAYER_ICONS.get(name, name)}: {t}"
+            return f"{PRAYER_NAMES.get(name, name)}: {t}"
     # All prayers passed, show first prayer tomorrow
     first_name, first_time = sorted(prayer_times.items(), key=lambda x: x[1])[0]
     # return f"{first_name}: {first_time}"
-    return f"{PRAYER_ICONS.get(first_name, first_name)}: {first_time}"
+    return f"{PRAYER_NAMES.get(first_name, first_name)}: {first_time}"
 
 
 def write_next_prayer(prayer_times):
@@ -114,7 +114,8 @@ def main():
         if prayer_times:
             for name, t in prayer_times.items():
                 if now_str == t:
-                    notify("Prayer Reminder", f"It's time for {name} prayer.")
+                    eng_name = PRAYER_NAMES.get(name, name)
+                    notify("Prayer Reminder 🕌", f"It's time for {eng_name} prayer. 📿")
                     write_next_prayer(prayer_times)  # update after prayer
 
         # Update cache every loop
