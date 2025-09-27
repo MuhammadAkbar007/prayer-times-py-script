@@ -87,6 +87,13 @@ def write_next_prayer(prayer_times):
     safe_write(next_prayer)
 
 
+def format_prayer_name(name: str) -> str:
+    """Return prayer name with only first letter uppercase (safe)."""
+    # If found in dictionary, use it, otherwise fallback to input
+    raw = PRAYER_NAMES.get(name.lower(), name)
+    return raw.capitalize()
+
+
 def main():
     current_day = datetime.date.today()
     prayer_times = fetch_prayer_times()
@@ -121,7 +128,7 @@ def main():
         if prayer_times:
             for name, t in prayer_times.items():
                 if now_str == t:
-                    eng_name = PRAYER_NAMES.get(name, name)
+                    eng_name = format_prayer_name(name)
                     notify("Prayer Reminder 🕌", f"It's time for {eng_name} prayer. 📿")
                     write_next_prayer(prayer_times)  # update after prayer
 
