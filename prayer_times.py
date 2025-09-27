@@ -14,7 +14,7 @@ CACHE_FILE = Path.home() / ".cache/prayer-next.txt"
 PRAYER_ICONS = {
     "tong_saharlik": "Fajr",
     "quyosh": "Sunrise",
-    "peshin": "huhr",
+    "peshin": "Dhuhr",
     "asr": "Asr",
     "shom_iftor": "Maghrib",
     "hufton": "Isha",
@@ -48,8 +48,16 @@ def fetch_prayer_times():
 
 
 def notify(title, message):
-    subprocess.run(["notify-send", title, message])
-    subprocess.run(["paplay", "/usr/share/sounds/freedesktop/stereo/complete.oga"])
+    subprocess.run(
+        ["notify-send", "--urgency=critical", "--expire-time=0", title, message]
+    )
+    subprocess.run(
+        [
+            "paplay",
+            "--volume=65536",  # this is max
+            "/usr/share/sounds/freedesktop/stereo/complete.oga",
+        ]
+    )
 
 
 def get_next_prayer(prayer_times):
