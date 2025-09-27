@@ -1,9 +1,11 @@
 import datetime
-from pathlib import Path
 import requests
-from requests.adapters import HTTPAdapter
 import subprocess
 import time
+
+from gi.repository import Notify  # type: ignore
+from pathlib import Path
+from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 API_URL = "https://islomapi.uz/api/present/day?region=Namangan"
@@ -48,14 +50,19 @@ def fetch_prayer_times():
 
 
 def notify(title, message):
-    subprocess.run(
-        ["notify-send", "--urgency=critical", "--expire-time=0", title, message]
-    )
+    # subprocess.run(
+    #     ["notify-send", "--urgency=critical", "--expire-time=0", title, message]
+    # )
+    Notify.init("Prayer Times    ")
+    notification = Notify.Notification.new(title, message)
+    notification.set_urgency(2)  # critical
+    notification.show()
+
     subprocess.run(
         [
             "paplay",
             "--volume=65536",  # this is max
-            "/usr/share/sounds/freedesktop/stereo/complete.oga",
+            "/usr/share/sounds/freedesktop/stereo/suspend-error.oga",  # message-new-instant or complete
         ]
     )
 
