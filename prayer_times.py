@@ -62,7 +62,7 @@ def notify(title, message):
         [
             "paplay",
             "--volume=65536",  # this is max
-            "/usr/share/sounds/freedesktop/stereo/complete.oga",  # message-new-instant or complete or prayer-notification.wav
+            "/usr/share/sounds/freedesktop/stereo/jingle3.wav",  # complete || message-new-instant or complete or prayer-notification.wav
         ]
     )
 
