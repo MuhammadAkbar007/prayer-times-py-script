@@ -2,7 +2,7 @@
  - [ ] offline mode: show the last month
  - [ ] cleanup of old pdf, json (, next_prayer, today_prayers)
  - [ ] notification customization
- - [ ] auto-retry download pdf if fails
+ - [-] auto-retry download pdf if fails
 
 # Project Setup ⚙️
 
@@ -138,3 +138,4 @@ API -> `islom.uz/prayertime/pdf/15/12`
 
 # Author  ✍️
 [Akbar Ahmad ibn Akrom](https://github.com/MuhammadAkbar007)
+

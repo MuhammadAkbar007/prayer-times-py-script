@@ -1,6 +1,7 @@
 import json
 import pdfplumber
 import requests
+import time
 from .storage import get_month_paths
 
 # mapping Uzbek → English prayer names
@@ -39,7 +40,9 @@ def find_column_index(header_row, possible_names):
     raise ValueError(f"Could not find column with any of: {possible_names}")
 
 
-def download_pdf(region_id: int, year: int, month: int, timeout: int = 30):
+def download_pdf(
+    region_id: int, year: int, month: int, timeout: int = 30, retries: int = 3
+):
     """
     Download the prayer times PDF from islom.uz for given region + month.
     Returns the path to the downloaded PDF.
@@ -51,24 +54,82 @@ def download_pdf(region_id: int, year: int, month: int, timeout: int = 30):
     pdf_path, json_path = get_month_paths(year, month)
 
     print(f"[PDF Downloader] Fetching: {url}")
-    print(f"[PDF Downloader] Saving to: {pdf_path}")
 
-    try:
-        response = requests.get(url, timeout=timeout)
-        response.raise_for_status()
-    except Exception as e:
-        raise RuntimeError(f"Failed to download PDF: {e}")
+    # Add browser-like headers to avoid being blocked
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/pdf,application/x-pdf,*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+    }
 
-    # Save file
-    pdf_path.write_bytes(response.content)
+    for attempt in range(1, retries + 1):
+        try:
+            print(f"[PDF Downloader] Attempt {attempt}/{retries}")
 
-    # Validate file is non-empty
-    if pdf_path.stat().st_size < 500:
-        # The website sometimes returns an HTML error page or empty file.
-        raise RuntimeError(f"Downloaded PDF seems invalid (size too small): {pdf_path}")
+            # Use session for better connection handling
+            session = requests.Session()
+            response = session.get(
+                url, headers=headers, timeout=timeout, allow_redirects=True
+            )
+            response.raise_for_status()
 
-    print("[PDF Downloader] Download successful.")
-    return pdf_path
+            data = response.content
+
+            # Debug: print what we received
+            print(
+                f"[PDF Downloader] Content-Type: {response.headers.get('Content-Type')}"
+            )
+            print(f"[PDF Downloader] Response size: {len(data)} bytes")
+            print(f"[PDF Downloader] First 50 bytes: {data[:50]}")
+
+            # Validate size
+            if len(data) < 500:
+                raise RuntimeError(
+                    f"File too small ({len(data)} bytes) — likely HTML error page"
+                )
+
+            # Validate PDF header (strip leading whitespace first)
+            # Some servers add \r\n before the PDF header
+            data_stripped = data.lstrip(b"\r\n\t ")
+
+            if not data_stripped.startswith(b"%PDF-"):
+                # Try to detect what we actually got
+                content_preview = data[:200].decode("utf-8", errors="ignore")
+                if content_preview.strip().startswith("<"):
+                    raise RuntimeError(
+                        f"Received HTML instead of PDF. Preview: {content_preview[:100]}"
+                    )
+                else:
+                    raise RuntimeError(f"Missing PDF header. First bytes: {data[:20]}")
+
+            # Use the original data (with whitespace) for saving
+            # PDFs can technically start with whitespace
+
+            # Atomic write
+            tmp_path = pdf_path.with_suffix(".tmp")
+            tmp_path.write_bytes(data)
+            tmp_path.replace(pdf_path)
+
+            print("[PDF Downloader] Download successful.")
+            session.close()
+            return pdf_path
+
+        except requests.exceptions.RequestException as e:
+            print(f"[PDF Downloader] Network error: {e}")
+        except Exception as e:
+            print(f"[PDF Downloader] Error: {e}")
+
+        if attempt < retries:
+            sleep_time = attempt * 10
+            print(f"[PDF Downloader] Retrying in {sleep_time} seconds...")
+            time.sleep(sleep_time)
+        else:
+            print("[PDF Downloader] All retries failed.")
+            raise RuntimeError("Failed to download PDF after multiple attempts")
+
+    return None
 
 
 def parse_pdf_to_json(pdf_path):

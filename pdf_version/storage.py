@@ -1,5 +1,4 @@
 from pathlib import Path
-import datetime
 
 BASE_DIR = Path.home() / ".local/share/prayer-times"
 TMP_FILE = Path("/tmp/next_prayer")
