@@ -1,5 +1,5 @@
 # todos ✅
- - [-] offline mode: show the last month
+ - [-] offline mode: show the last month `scheduler.py changed`
 
 # Project Setup ⚙️
 

@@ -62,12 +62,9 @@ def get_schedule_for_date(dt: date):
     return data.get(key)
 
 
-def format_full_day(schedule: dict, is_stale: bool = False) -> str:
+def format_full_day(schedule: dict) -> str:
     """Return a multi-line string of today's schedule"""
     lines = []
-    if is_stale:
-        lines.append("⚠️  Using old data (offline)")
-        lines.append("")
     for k in ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"]:
         v = schedule.get(k, "-")
         lines.append(f"{k}: {v}")
@@ -96,27 +93,19 @@ def get_next_prayer_from_schedule(schedule: dict):
     return None
 
 
-def write_status(
-    schedule_today, offline=False, using_stale_data=False, stale_date=None
-):
+def write_status(schedule_today, offline=False):
     """Write the short one-line status and full-day file for tmux popup."""
     if schedule_today:
         name_time = get_next_prayer_from_schedule(schedule_today)
         if name_time:
             name, t = name_time
-            if using_stale_data and stale_date:
-                # Show indicator for stale data with date
-                short = f"● {name}: {t} ({stale_date.strftime('%b %d')})"
-            elif using_stale_data:
-                short = f"● {name}: {t}"
-            else:
-                short = f"{name}: {t}"
+            short = f"{name}: {t}"
         else:
             short = "No upcoming (all passed)"
-        full = format_full_day(schedule_today, is_stale=using_stale_data)
+        full = format_full_day(schedule_today)
     else:
         if offline:
-            short = "● Offline: no data"
+            short = "Offline: no data"
             full = "No prayer schedule available (offline)."
         else:
             short = "Loading...🌀"
@@ -164,12 +153,10 @@ def cleanup_old_month_files(current_year, current_month):
     """
     Remove previous month files (PDF + JSON) to avoid accumulating storage.
     Keep only current month files.
-    **ONLY call this after successfully downloading current month data**
     """
     base_pdf, base_json = get_month_paths(current_year, current_month)
     # iterate files in dir and delete any that are not the current month pair
     storage_dir = base_pdf.parent
-    deleted_count = 0
     for f in storage_dir.iterdir():
         try:
             if f == base_pdf or f == base_json:
@@ -180,31 +167,8 @@ def cleanup_old_month_files(current_year, current_month):
                 name = f.stem  # e.g. "2025-12"
                 if len(name) >= 7 and name[4] == "-":
                     f.unlink(missing_ok=True)
-                    deleted_count += 1
         except Exception:
             pass
-    if deleted_count > 0:
-        print(f"[scheduler] Cleaned up {deleted_count} old files")
-
-
-def find_most_recent_available_data():
-    """
-    Find the most recent month with available JSON data.
-    Returns (year, month, date_obj) or None.
-    Checks current month, then goes backwards up to 3 months.
-    """
-    today = date.today()
-    for i in range(4):  # Check current + 3 previous months
-        check_date = today - timedelta(days=i * 30)
-        data = load_month_data(check_date.year, check_date.month)
-        if data:
-            # Find the most recent date in this data
-            dates = sorted(data.keys())
-            if dates:
-                last_date_str = dates[-1]
-                last_date = datetime.strptime(last_date_str, "%Y-%m-%d").date()
-                return check_date.year, check_date.month, last_date
-    return None
 
 
 def main_loop():
@@ -222,57 +186,38 @@ def main_loop():
 
             # If month JSON is missing try to ensure it.
             ok = ensure_month_data(year, month)
+            if not ok:
+                # we failed to get the current month's JSON.
+                # Try fallback: use previous month (if exists)
+                prev = today - timedelta(days=14)  # guaranteed previous month in middle
+                prev_ok = False
+                try:
+                    prev_ok = load_month_data(prev.year, prev.month) is not None
+                except Exception:
+                    prev_ok = False
 
-            if ok:
-                # Successfully have current month data
-                schedule_today = get_schedule_for_date(today)
-
-                if schedule_today is None:
-                    # Current month JSON exists but today's entry is missing (very rare)
-                    # This could happen if PDF was corrupted or parsing failed for specific dates
-                    print(
-                        f"[scheduler] Warning: Current month data exists but no entry for {today}"
-                    )
-                    write_status(None, offline=True)
-                else:
-                    # Normal case: we have current data
-                    write_status(schedule_today, offline=False, using_stale_data=False)
-
-                # Only cleanup old files AFTER successfully getting new data
-                cleanup_old_month_files(year, month)
-
-            else:
-                # Failed to get current month data - try to use stale data
-                print("[scheduler] Could not get current month data, using fallback...")
-
-                # Try to find the most recent available data
-                fallback = find_most_recent_available_data()
-
-                if fallback:
-                    fb_year, fb_month, fb_date = fallback
-                    print(f"[scheduler] Using data from {fb_year}-{fb_month:02d}")
-
-                    # Try to get today's data from old month (might work if it's early in new month)
+                if prev_ok:
                     schedule_today = get_schedule_for_date(today)
-
+                    # If today's entry missing (very likely), use last known (best effort)
                     if schedule_today is None:
-                        # Use the last available date from the old month
-                        schedule_today = get_schedule_for_date(fb_date)
-                        stale_date = fb_date
+                        # Use last day available from previous month's JSON
+                        prev_data = load_month_data(prev.year, prev.month)
+                        # get last date key from prev_data
+                        if prev_data:
+                            last_date = sorted(prev_data.keys())[-1]
+                            schedule_today = prev_data[last_date]
+                            offline = True
+                        else:
+                            schedule_today = None
+                            offline = True
                     else:
-                        # Today's date exists in old month (early in new month case)
-                        stale_date = today
-
-                    write_status(
-                        schedule_today,
-                        offline=True,
-                        using_stale_data=True,
-                        stale_date=stale_date,
-                    )
+                        offline = True
                 else:
-                    # No data at all
                     schedule_today = None
-                    write_status(None, offline=True)
+                    offline = True
+
+                # Write status showing offline; schedule retry logic below
+                write_status(schedule_today, offline=offline)
 
                 # Retry policy: attempt redownload every DOWNLOAD_RETRY_HOURS
                 if (
@@ -284,13 +229,24 @@ def main_loop():
                     last_download_attempt = datetime.now()
                     ok2 = ensure_month_data(year, month)
                     if ok2:
-                        # fresh data arrived → reload
+                        # fresh data arrived -> reload
                         schedule_today = get_schedule_for_date(today)
+                        offline = False
                         cleanup_old_month_files(year, month)
                         clear_notifications_for_new_day()
-                        write_status(
-                            schedule_today, offline=False, using_stale_data=False
-                        )
+                        write_status(schedule_today, offline=False)
+                # Sleep and continue
+                send_notification_if_needed(schedule_today)
+                time.sleep(CHECK_INTERVAL_SECONDS)
+                continue
+
+            # If we have the month JSON:
+            schedule_today = get_schedule_for_date(today)
+            if schedule_today is None:
+                # No entry for today (rare). Mark offline and write status
+                write_status(None, offline=True)
+            else:
+                write_status(schedule_today, offline=False)
 
             # If day changed since last loop, reset notified set
             if today != last_checked_date:
@@ -298,8 +254,10 @@ def main_loop():
                 clear_notifications_for_new_day()
 
             # Send notifications if any prayer matches current minute
-            # (even with stale data, times might still be useful)
             send_notification_if_needed(schedule_today)
+
+            # Clean up previous months
+            cleanup_old_month_files(year, month)
 
             # Sleep until next tick
             time.sleep(CHECK_INTERVAL_SECONDS)
