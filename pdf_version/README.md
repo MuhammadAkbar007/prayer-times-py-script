@@ -2,7 +2,6 @@
  - [ ] offline mode: show the last month
  - [ ] cleanup of old pdf, json (, next_prayer, today_prayers)
  - [ ] notification customization
- - [-] auto-retry download pdf if fails
 
 # Project Setup ⚙️
 

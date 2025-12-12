@@ -40,13 +40,73 @@ def find_column_index(header_row, possible_names):
     raise ValueError(f"Could not find column with any of: {possible_names}")
 
 
+def cleanup_old_files(current_year: int, current_month: int, keep_json: bool = True):
+    """
+    Remove PDF and JSON files older than the current month.
+
+    Args:
+        current_year: Year of the current month to keep
+        current_month: Month of the current month to keep
+        keep_json: If True, only delete PDFs. If False, delete both PDFs and JSONs.
+    """
+
+    current_path, _ = get_month_paths(current_year, current_month)
+    storage_dir = current_path.parent
+
+    if not storage_dir.exists():
+        return
+
+    current_key = (current_year, current_month)
+    deleted_count = 0
+
+    # Find all PDF files matching the pattern
+    for pdf_file in storage_dir.glob("????-??.pdf"):
+        try:
+            # Parse filename: "2025-12.pdf" -> (2025, 12)
+            stem = pdf_file.stem  # "2025-12"
+            file_year, file_month = map(int, stem.split("-"))
+            file_key = (file_year, file_month)
+
+            # Delete if older than current month
+            if file_key < current_key:
+                pdf_file.unlink()
+                print(f"[Cleanup] Deleted old PDF: {pdf_file.name}")
+                deleted_count += 1
+
+                # Also delete corresponding JSON if requested
+                if not keep_json:
+                    json_file = pdf_file.with_suffix(".json")
+                    if json_file.exists():
+                        json_file.unlink()
+                        print(f"[Cleanup] Deleted old JSON: {json_file.name}")
+
+        except (ValueError, OSError) as e:
+            print(f"[Cleanup] Warning: Could not process {pdf_file.name}: {e}")
+
+    if deleted_count > 0:
+        print(f"[Cleanup] Removed {deleted_count} old file(s)")
+
+
 def download_pdf(
-    region_id: int, year: int, month: int, timeout: int = 30, retries: int = 3
+    region_id: int,
+    year: int,
+    month: int,
+    timeout: int = 30,
+    retries: int = 3,
+    cleanup: bool = True,
 ):
     """
     Download the prayer times PDF from islom.uz for given region + month.
     Returns the path to the downloaded PDF.
     Raises exceptions on failure.
+
+    Args:
+        region_id: Region ID for islom.uz
+        year: Year of the prayer times
+        month: Month of the prayer times
+        timeout: Request timeout in seconds
+        retries: Number of retry attempts
+        cleanup: If True, delete old PDFs after successful download
     """
     # Example URL: https://islom.uz/prayertime/pdf/15/12
     url = f"https://islom.uz/prayertime/pdf/{region_id}/{month}"
@@ -113,6 +173,11 @@ def download_pdf(
             tmp_path.replace(pdf_path)
 
             print("[PDF Downloader] Download successful.")
+
+            # Clean up old PDFs after successful download
+            if cleanup:
+                cleanup_old_files(year, month, keep_json=True)
+
             session.close()
             return pdf_path
 
@@ -132,7 +197,7 @@ def download_pdf(
     return None
 
 
-def parse_pdf_to_json(pdf_path):
+def parse_pdf_to_json(pdf_path, cleanup: bool = True):
     """
     Read table from the monthly prayer PDF and convert it
     into JSON-serializable structure:
@@ -144,6 +209,10 @@ def parse_pdf_to_json(pdf_path):
         },
         ...
     }
+
+    Args:
+        pdf_path: Path to the PDF file
+        cleanup: If True, delete old JSON files after successful parsing
     """
 
     print(f"[PDF Parser] Opening PDF: {pdf_path}")
@@ -219,4 +288,9 @@ def parse_pdf_to_json(pdf_path):
 
     print(f"[PDF Parser] Parsed {len(month_data)} days")
     print(f"[PDF Parser] JSON saved to: {json_path}")
+
+    # Clean up old JSON files after successful parsing
+    if cleanup:
+        cleanup_old_files(y, m, keep_json=False)
+
     return month_data
