@@ -1,7 +1,5 @@
 # todos ✅
- - [ ] offline mode: show the last month
- - [ ] cleanup of old pdf, json (, next_prayer, today_prayers)
- - [ ] notification customization
+ - [-] offline mode: show the last month
 
 # Project Setup ⚙️
 

@@ -135,9 +135,9 @@ def send_notification_if_needed(schedule_today):
             key = f"{today_key}|{name}"
             if key not in _notified_for_today:
                 # send notification
-                title = "Prayer Reminder"
+                title = "🕌 Prayer Reminder"
                 message = f"It's time for {name} prayer ({t})."
-                notify(title, message)
+                notify(title, message, icon="🕌")
                 _notified_for_today.add(key)
                 # after notifying, update next-prayer text
                 write_status(schedule_today)
