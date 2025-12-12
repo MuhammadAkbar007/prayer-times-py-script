@@ -12,6 +12,6 @@ subprocess.run(
     [
         "paplay",
         "--volume=65536",  # this is max
-        "/usr/share/sounds/freedesktop/stereo/prayer-notification.wav",  # suspend-error message-new-instant or complete
+        "/usr/share/sounds/freedesktop/stereo/jingle3.wav",  # suspend-error message-new-instant or complete
     ]
 )
