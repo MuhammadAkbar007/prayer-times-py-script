@@ -1,2 +1,5 @@
-[API-based project (deprecated)](./api_version/README.md)
-[PDF-based project](./pdf_version/README.md)
+# API-based project (deprecated)
+[readme file](./api_version/README.md)
+
+# PDF-based project
+[readme file](./pdf_version/README.md)
