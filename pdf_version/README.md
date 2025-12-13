@@ -1,6 +1,3 @@
-# todos ✅
- - [-] offline mode: show the last month `scheduler.py changed`
-
 # Project Setup ⚙️
 
 ## Clone or copy the project directory manually
