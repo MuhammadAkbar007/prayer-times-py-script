@@ -41,7 +41,7 @@ def notify(
     volume: float = 1.0,
     urgency: str = "critical",
     icon: str | None = None,
-    app_name: str = "Prayer Times 🕌",
+    app_name: str = "Prayer Times  ",
     expire_time: int = 0,
 ):
     """
