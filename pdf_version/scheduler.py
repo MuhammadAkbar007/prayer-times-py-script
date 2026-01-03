@@ -106,11 +106,11 @@ def write_status(
             name, t = name_time
             if using_stale_data and stale_date:
                 # Show indicator for stale data with date
-                short = f"● {name}: {t} ({stale_date.strftime('%b %d')})"
+                short = f"● {name} {t} ({stale_date.strftime('%b %d')}) 󰥔 "
             elif using_stale_data:
-                short = f"● {name}: {t}"
+                short = f"● {name} {t} 󰥔 "
             else:
-                short = f"{name}: {t}"
+                short = f"{name} {t} 󰥔 "
         else:
             short = "No upcoming (all passed)"
         full = format_full_day(schedule_today, is_stale=using_stale_data)
@@ -147,7 +147,7 @@ def send_notification_if_needed(schedule_today):
             if key not in _notified_for_today:
                 # send notification
                 title = f"    Prayer Reminder for {name}"
-                message = f"It's time for {name} prayer ( {t} )."
+                message = f"It's time for {name} prayer ( {t} )"
                 notify(title, message, icon="  ")
                 _notified_for_today.add(key)
                 # after notifying, update next-prayer text
