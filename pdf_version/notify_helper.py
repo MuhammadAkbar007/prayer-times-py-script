@@ -5,6 +5,8 @@ DEFAULT_SOUND = (
     Path(__file__).resolve().parent.parent / "assets" / "prayer-notification.wav"
 )
 
+DEFAULT_ICON = Path(__file__).resolve().parent.parent / "assets" / "mosque.png"
+
 
 def _play_sound(sound_path: Path | str | None, volume: float = 1.0):
     """
@@ -40,7 +42,7 @@ def notify(
     sound: Path | str | None = None,
     volume: float = 1.0,
     urgency: str = "critical",
-    icon: str | None = None,
+    icon: Path | str | None = None,
     app_name: str = "Prayer Times  ",
     expire_time: int = 0,
 ):
@@ -68,6 +70,8 @@ def notify(
         # Add icon if specified
         if icon:
             cmd.append(f"--icon={icon}")
+        else:
+            cmd.append(f"--icon={DEFAULT_ICON}")
 
         # Add title and message
         cmd.extend([title, message])

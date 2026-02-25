@@ -3,6 +3,7 @@ import traceback
 import json
 import sys
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from .notify_helper import notify
 from .pdf_parser import download_pdf, parse_pdf_to_json
 from .storage import get_month_paths
@@ -12,6 +13,8 @@ REGION_ID = 15  # Namangan (change if needed)
 CHECK_INTERVAL_SECONDS = 60  # main loop tick
 DOWNLOAD_RETRY_HOURS = 6  # if download fails, retry after this many hours
 MIN_PDF_SIZE_BYTES = 500
+
+DEFAULT_ICON = Path(__file__).resolve().parent.parent / "assets" / "mosque.png"
 
 _notified_for_today = set()  # set of prayer names already notified for current date
 
@@ -148,7 +151,7 @@ def send_notification_if_needed(schedule_today):
                 # send notification
                 title = f"    Prayer Reminder for {name}"
                 message = f"It's time for {name} prayer ( {t} )"
-                notify(title, message, icon="  ")
+                notify(title, message, icon=DEFAULT_ICON)
                 _notified_for_today.add(key)
                 # after notifying, update next-prayer text
                 write_status(schedule_today)
